@@ -2,10 +2,12 @@ package com.coolweather.android;
 
 import android.app.Fragment;
 import android.app.ProgressDialog;
+import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -49,7 +51,7 @@ public class ChooseAreaFragment extends Fragment {
     private Province selectedProvince;
     private City selectedCity;
     private int currentLevel;
-
+    private static final String TAG = "ChooseAreaFragment";
 
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, Bundle savedInstanceState) {
@@ -67,14 +69,30 @@ public class ChooseAreaFragment extends Fragment {
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            private String weatherId;
+
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 if (currentLevel == LEVEL_PROVINCE) {
                     selectedProvince = provinceList.get(position);
                     queryCities();
-                } else if (currentLevel == LEVEL_CITY) {
+                }else if (currentLevel == LEVEL_CITY){
                     selectedCity = cityList.get(position);
-                    queryCities();
+                    queryCounties();
+                } else if (currentLevel == LEVEL_COUNTY) {
+                    if (getActivity() instanceof MainActivity){
+                        String weatherId = countyList.get(position).getWeatherId();
+                        Intent intent = new Intent(getActivity(),WeatherActivity.class);
+                        intent.putExtra("weather_id",weatherId);
+                        startActivity(intent);
+                        getActivity().finish();
+                    }else if (getActivity() instanceof WeatherActivity){
+                        weatherId = countyList.get(position).getWeatherId();
+                        WeatherActivity activity = (WeatherActivity) getActivity();
+                        activity.drawerLayout.closeDrawers();
+                        activity.swipeRefresh.setRefreshing(true);
+                        activity.requestWeather(weatherId);
+                    }
                 }
             }
         });
@@ -196,7 +214,7 @@ public class ChooseAreaFragment extends Fragment {
         });
     }
 
-    private void closeProgressDialog() {
+    private void showProgressDialog() {
         if (progressDialog == null){
             progressDialog = new ProgressDialog(getActivity());
             progressDialog.setMessage("正在加载...");
@@ -205,7 +223,7 @@ public class ChooseAreaFragment extends Fragment {
         progressDialog.show();
     }
 
-    private void showProgressDialog() {
+    private void closeProgressDialog() {
         if (progressDialog != null){
             progressDialog.dismiss();
         }
